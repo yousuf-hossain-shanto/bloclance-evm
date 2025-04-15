@@ -9,7 +9,17 @@ const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://sepolia.infura.i
 const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL || "https://mainnet.infura.io/v3/your-api-key";
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.28",
+  solidity: {
+    version: "0.8.28",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      },
+      viaIR: true,
+      evmVersion: "paris"
+    }
+  },
   networks: {
     sepolia: {
       url: SEPOLIA_RPC_URL,
