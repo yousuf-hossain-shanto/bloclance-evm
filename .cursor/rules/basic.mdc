@@ -1,0 +1,46 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Bloclance - Freelance Services Platform
+
+## Project Overview
+Bloclance is a freelance services marketplace platform built with modern tech stack.
+
+## Tech Stack
+- pnpm (package manager)
+- TypeScript
+- Viem
+- Hardhat
+
+## Coding Standards
+
+### TypeScript
+- Strict TypeScript usage required
+- No 'any' types allowed
+- Define proper interfaces and types
+- Use type inference when obvious
+
+### Testing
+- Use proper testing patterns
+- Maintain good test coverage
+
+### Git Practices
+- Use meaningful commit messages
+- Follow conventional commits
+- Create feature branches
+- Review code before merging
+
+### Documentation
+- Document complex logic
+- Add comments when necessary
+- Keep README updated
+
+### Security
+- Implement proper authentication
+- Use proper authorization
+- Sanitize user inputs
+- Follow security best practices
+
+Remember, boss: This is a living document and should be updated as new standards and practices are adopted.

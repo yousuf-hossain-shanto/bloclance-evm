@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Bloclance On Chain Functions
+
+EVM Blocchain supports. ETH Sepolia for testnet and ETH mainnet for mainnet.
+
+Requirements: The smart contract will be responsible for the escrow for bloclance platform. Buyer will call a contract method named placeOrder with order id, order amount, seller address, currency address (either be zero address or erc20 token address) and a signature. The signature will be based on those params encoded and signed with owner private key to verify in smart contract to prevent fraud. The contract will then hold up the fund. Buyer can perform release action to release funds to the seller and admin will receive a defined % of fee+ a defined fixed fee. Rest of the fund will go to the seller account. Seller can perform refund. Admin can perform release and refund anytime. Admin won't receive any fee in case of refund.
+Those fee are changable.
