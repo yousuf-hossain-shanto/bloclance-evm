@@ -146,7 +146,7 @@ contract BloclanceEscrow is Ownable, ReentrancyGuard {
         // Group validation checks
         if (order.amount == 0) revert OrderDoesNotExist();
         if (order.state != OrderState.ACTIVE) revert OrderAlreadyProcessed();
-        if (msg.sender != order.seller && msg.sender != owner()) revert NotAuthorized();
+        if (msg.sender != order.buyer && msg.sender != owner()) revert NotAuthorized();
 
         // No need to recalculate fees - use pre-calculated value
         uint128 feeAmount = order.feeAmount;

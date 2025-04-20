@@ -161,7 +161,7 @@ describe("BloclanceEscrow", function () {
         { client: { wallet: seller } }
       );
       
-      const releaseTx = await escrowForSeller.write.releaseFunds([orderId]);
+      const releaseTx = await escrowForBuyer.write.releaseFunds([orderId]);
       await publicClient.waitForTransactionReceipt({ hash: releaseTx });
       
       // Get expected fee amount (5% of order amount)
@@ -277,6 +277,221 @@ describe("BloclanceEscrow", function () {
       
       await expect(escrowForOther.write.updateFee([newFeePercentage]))
         .to.be.rejectedWith(/OwnableUnauthorizedAccount/);
+    });
+
+    it("Should allow buyer to release funds", async function () {
+      const { 
+        bloclanceEscrow, 
+        mockUSDC, 
+        seller, 
+        buyer, 
+        owner, 
+        feeCollector,
+        publicClient 
+      } = await loadFixture(deployEscrowFixture);
+      
+      const orderId = 1n;
+      const orderAmount = parseUnits("100", 6); // 100 USDC
+      const nonce = 12345n;
+      
+      // Generate signature
+      const orderHash = keccak256(encodePacked(['uint256', 'uint256', 'address', 'uint256'], [orderId, orderAmount, seller.account.address, nonce]));
+      const signature = await owner.signMessage({ message: { raw: orderHash } });
+      
+      // Place order
+      const escrowForBuyer = await hre.viem.getContractAt(
+        "BloclanceEscrow",
+        bloclanceEscrow.address,
+        { client: { wallet: buyer } }
+      );
+      
+      await escrowForBuyer.write.placeOrder([
+        orderId,
+        orderAmount,
+        seller.account.address,
+        nonce,
+        signature
+      ]);
+      
+      // Release funds from buyer account
+      const releaseTx = await escrowForBuyer.write.releaseFunds([orderId]);
+      await publicClient.waitForTransactionReceipt({ hash: releaseTx });
+      
+      // Check order state
+      const orderResult = await bloclanceEscrow.read.getOrder([orderId]);
+      const [,, , state,] = orderResult as OrderDetails;
+      expect(state).to.equal(1); // state = RELEASED
+    });
+
+    it("Should allow owner to release funds", async function () {
+      const { 
+        bloclanceEscrow, 
+        mockUSDC, 
+        seller, 
+        buyer, 
+        owner, 
+        publicClient 
+      } = await loadFixture(deployEscrowFixture);
+      
+      const orderId = 1n;
+      const orderAmount = parseUnits("100", 6); // 100 USDC
+      const nonce = 12345n;
+      
+      // Generate signature
+      const orderHash = keccak256(encodePacked(['uint256', 'uint256', 'address', 'uint256'], [orderId, orderAmount, seller.account.address, nonce]));
+      const signature = await owner.signMessage({ message: { raw: orderHash } });
+      
+      // Place order
+      const escrowForBuyer = await hre.viem.getContractAt(
+        "BloclanceEscrow",
+        bloclanceEscrow.address,
+        { client: { wallet: buyer } }
+      );
+      
+      await escrowForBuyer.write.placeOrder([
+        orderId,
+        orderAmount,
+        seller.account.address,
+        nonce,
+        signature
+      ]);
+      
+      // Release funds from owner account
+      const releaseTx = await bloclanceEscrow.write.releaseFunds([orderId]);
+      await publicClient.waitForTransactionReceipt({ hash: releaseTx });
+      
+      // Check order state
+      const orderResult = await bloclanceEscrow.read.getOrder([orderId]);
+      const [,, , state,] = orderResult as OrderDetails;
+      expect(state).to.equal(1); // state = RELEASED
+    });
+
+    it("Should not allow seller to release funds", async function () {
+      const { 
+        bloclanceEscrow, 
+        seller, 
+        buyer, 
+        owner
+      } = await loadFixture(deployEscrowFixture);
+      
+      const orderId = 1n;
+      const orderAmount = parseUnits("100", 6); // 100 USDC
+      const nonce = 12345n;
+      
+      // Generate signature
+      const orderHash = keccak256(encodePacked(['uint256', 'uint256', 'address', 'uint256'], [orderId, orderAmount, seller.account.address, nonce]));
+      const signature = await owner.signMessage({ message: { raw: orderHash } });
+      
+      // Place order
+      const escrowForBuyer = await hre.viem.getContractAt(
+        "BloclanceEscrow",
+        bloclanceEscrow.address,
+        { client: { wallet: buyer } }
+      );
+      
+      await escrowForBuyer.write.placeOrder([
+        orderId,
+        orderAmount,
+        seller.account.address,
+        nonce,
+        signature
+      ]);
+      
+      // Try to release funds from seller account - should fail
+      const escrowForSeller = await hre.viem.getContractAt(
+        "BloclanceEscrow",
+        bloclanceEscrow.address,
+        { client: { wallet: seller } }
+      );
+      
+      await expect(escrowForSeller.write.releaseFunds([orderId]))
+        .to.be.rejectedWith(/NotAuthorized/);
+    });
+
+    it("Should allow owner to refund", async function () {
+      const { 
+        bloclanceEscrow, 
+        mockUSDC, 
+        seller, 
+        buyer, 
+        owner, 
+        publicClient 
+      } = await loadFixture(deployEscrowFixture);
+      
+      const orderId = 1n;
+      const orderAmount = parseUnits("100", 6); // 100 USDC
+      const nonce = 12345n;
+      
+      // Generate signature
+      const orderHash = keccak256(encodePacked(['uint256', 'uint256', 'address', 'uint256'], [orderId, orderAmount, seller.account.address, nonce]));
+      const signature = await owner.signMessage({ message: { raw: orderHash } });
+      
+      // Place order
+      const escrowForBuyer = await hre.viem.getContractAt(
+        "BloclanceEscrow",
+        bloclanceEscrow.address,
+        { client: { wallet: buyer } }
+      );
+      
+      await escrowForBuyer.write.placeOrder([
+        orderId,
+        orderAmount,
+        seller.account.address,
+        nonce,
+        signature
+      ]);
+      
+      // Get buyer's initial balance
+      const initialBuyerBalance = await mockUSDC.read.balanceOf([buyer.account.address]) as bigint;
+      
+      // Refund from owner account
+      const refundTx = await bloclanceEscrow.write.refund([orderId]);
+      await publicClient.waitForTransactionReceipt({ hash: refundTx });
+      
+      // Check buyer received full refund
+      const finalBuyerBalance = await mockUSDC.read.balanceOf([buyer.account.address]) as bigint;
+      expect(finalBuyerBalance - initialBuyerBalance).to.equal(orderAmount);
+      
+      // Check order state
+      const orderResult = await bloclanceEscrow.read.getOrder([orderId]);
+      const [,, , state,] = orderResult as OrderDetails;
+      expect(state).to.equal(2); // state = REFUNDED
+    });
+
+    it("Should not allow buyer to refund", async function () {
+      const { 
+        bloclanceEscrow, 
+        seller, 
+        buyer, 
+        owner
+      } = await loadFixture(deployEscrowFixture);
+      
+      const orderId = 1n;
+      const orderAmount = parseUnits("100", 6); // 100 USDC
+      const nonce = 12345n;
+      
+      // Generate signature
+      const orderHash = keccak256(encodePacked(['uint256', 'uint256', 'address', 'uint256'], [orderId, orderAmount, seller.account.address, nonce]));
+      const signature = await owner.signMessage({ message: { raw: orderHash } });
+      
+      // Place order
+      const escrowForBuyer = await hre.viem.getContractAt(
+        "BloclanceEscrow",
+        bloclanceEscrow.address,
+        { client: { wallet: buyer } }
+      );
+      
+      await escrowForBuyer.write.placeOrder([
+        orderId,
+        orderAmount,
+        seller.account.address,
+        nonce,
+        signature
+      ]);
+      
+      // Try to refund from buyer account - should fail
+      await expect(escrowForBuyer.write.refund([orderId]))
+        .to.be.rejectedWith(/NotAuthorized/);
     });
 
     it("Should prevent using a nonce twice", async function () {
